@@ -1,7 +1,7 @@
-## 変更内容
+## Changes
 
 -
 
-## 確認
+## Verification
 
 -
