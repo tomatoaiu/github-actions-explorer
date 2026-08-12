@@ -45,6 +45,21 @@ function readyState(): ExplorerRenderState {
   }
 }
 
+function pressKey(
+  target: Element,
+  key: string,
+  options: KeyboardEventInit = {},
+): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    bubbles: true,
+    cancelable: true,
+    key,
+    ...options,
+  })
+  target.dispatchEvent(event)
+  return event
+}
+
 afterEach(() => {
   document.body.replaceChildren()
 })
@@ -154,6 +169,109 @@ describe("createExplorerView", () => {
     expect(name?.querySelector(".search-match")?.textContent).toBe("api")
     expect(fileName?.textContent).toBe("deploy-api.yml")
     expect(fileName?.querySelector(".search-match")?.textContent).toBe("api")
+  })
+
+  it("moves focus through visible groups and workflows with arrow keys", () => {
+    const container = document.createElement("div")
+    document.body.append(container)
+    const view = createExplorerView(container, handlers())
+    view.render(readyState())
+
+    const input = container.querySelector<HTMLInputElement>(".search-input")
+    const group = container.querySelector<HTMLButtonElement>(".group-toggle")
+    const workflows =
+      container.querySelectorAll<HTMLAnchorElement>(".workflow-link")
+    if (input === null || group === null) {
+      throw new TypeError("Expected keyboard navigation controls")
+    }
+
+    input.focus()
+    expect(pressKey(input, "ArrowDown").defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(group)
+
+    pressKey(group, "ArrowDown")
+    expect(document.activeElement).toBe(workflows[0])
+    pressKey(workflows[0]!, "ArrowUp")
+    expect(document.activeElement).toBe(group)
+    pressKey(group, "ArrowUp")
+    expect(document.activeElement).toBe(input)
+
+    pressKey(input, "ArrowUp")
+    expect(document.activeElement).toBe(workflows[2])
+  })
+
+  it("uses horizontal arrows to traverse and toggle workflow groups", () => {
+    const container = document.createElement("div")
+    document.body.append(container)
+    const viewHandlers = handlers()
+    const view = createExplorerView(container, viewHandlers)
+    const state = readyState()
+    view.render(state)
+
+    const input = container.querySelector<HTMLInputElement>(".search-input")
+    let group = container.querySelector<HTMLButtonElement>(".group-toggle")
+    if (input === null || group === null) {
+      throw new TypeError("Expected keyboard navigation controls")
+    }
+
+    input.focus()
+    pressKey(input, "ArrowDown")
+    pressKey(group, "ArrowRight")
+    const firstWorkflow =
+      container.querySelector<HTMLAnchorElement>(".workflow-link")
+    expect(document.activeElement).toBe(firstWorkflow)
+
+    if (firstWorkflow === null) {
+      throw new TypeError("Expected a grouped workflow")
+    }
+    pressKey(firstWorkflow, "ArrowLeft")
+    expect(document.activeElement).toBe(group)
+    pressKey(group, "ArrowLeft")
+    expect(viewHandlers.onTogglePrefix).toHaveBeenLastCalledWith("deploy")
+
+    view.render({
+      ...state,
+      repositoryState: {
+        ...state.repositoryState,
+        collapsedPrefixes: ["deploy"],
+      },
+    })
+    group = container.querySelector<HTMLButtonElement>(".group-toggle")
+    if (group === null) {
+      throw new TypeError("Expected a collapsed workflow group")
+    }
+    group.focus()
+    pressKey(group, "ArrowRight")
+    expect(viewHandlers.onTogglePrefix).toHaveBeenLastCalledWith("deploy")
+  })
+
+  it("opens the focused workflow with Command and ArrowDown", () => {
+    const container = document.createElement("div")
+    document.body.append(container)
+    const viewHandlers = handlers()
+    const view = createExplorerView(container, viewHandlers)
+    view.render(readyState())
+    container.addEventListener("click", (event) => event.preventDefault())
+
+    const input = container.querySelector<HTMLInputElement>(".search-input")
+    const group = container.querySelector<HTMLButtonElement>(".group-toggle")
+    if (input === null || group === null) {
+      throw new TypeError("Expected keyboard navigation controls")
+    }
+
+    input.focus()
+    pressKey(input, "ArrowDown")
+    pressKey(group, "ArrowDown")
+    const focusedWorkflow = document.activeElement
+    if (!(focusedWorkflow instanceof HTMLAnchorElement)) {
+      throw new TypeError("Expected a focused workflow")
+    }
+
+    expect(
+      pressKey(focusedWorkflow, "ArrowDown", { metaKey: true })
+        .defaultPrevented,
+    ).toBe(true)
+    expect(viewHandlers.onOpenWorkflow).toHaveBeenCalledWith("1")
   })
 
   it("renders independently toggleable nested groups", () => {
