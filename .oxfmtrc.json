@@ -6,6 +6,7 @@
   "ignorePatterns": [
     ".output/**",
     ".wxt/**",
+    "CHANGELOG.md",
     "coverage/**",
     "node_modules/**",
     "pnpm-lock.yaml"
