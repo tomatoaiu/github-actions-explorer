@@ -331,9 +331,25 @@ button {
 }
 
 .chevron {
+  align-items: center;
   color: var(--fgColor-muted, #59636e);
+  display: flex;
   flex: none;
-  width: 10px;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.chevron::before {
+  background: currentColor;
+  clip-path: polygon(20% 0, 85% 50%, 20% 100%);
+  content: "";
+  height: 9px;
+  width: 9px;
+}
+
+.group-toggle[aria-expanded="true"] .chevron::before {
+  transform: rotate(90deg);
 }
 
 .group-name {
