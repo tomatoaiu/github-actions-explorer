@@ -5,6 +5,7 @@ import { createShadowRootUi, defineContentScript } from "#imports"
 import type { ShadowRootContentScriptUi } from "wxt/utils/content-script-ui/shadow-root"
 
 import { parseGitHubActionsRoute } from "../../github/route"
+import { findNativeWorkflowElementsToHide } from "../../github/native-workflow-list"
 import { ExplorerController } from "../../ui/controller"
 import type { ExplorerDisplayMode } from "../../ui/render"
 
@@ -39,31 +40,17 @@ class NativeWorkflowListGuard {
     this.#restore()
   }
 
-  #workflowGroups(): Set<HTMLElement> {
-    const groups = new Set<HTMLElement>()
-    const workflowItems = this.#root.querySelectorAll(
-      '[data-test-selector="workflow-rendered"], li.actions-workflow-list-item',
-    )
-    for (const item of workflowItems) {
-      const group = item.closest<HTMLElement>("nav-list-group")
-      if (group !== null) {
-        groups.add(group)
-      }
-    }
-    return groups
-  }
-
   #apply(): void {
     if (!this.#hidden) {
       this.#restore()
       return
     }
 
-    for (const group of this.#workflowGroups()) {
-      if (!this.#originalHidden.has(group)) {
-        this.#originalHidden.set(group, group.hidden)
+    for (const element of findNativeWorkflowElementsToHide(this.#root)) {
+      if (!this.#originalHidden.has(element)) {
+        this.#originalHidden.set(element, element.hidden)
       }
-      group.hidden = true
+      element.hidden = true
     }
   }
 
