@@ -90,27 +90,16 @@ button {
 }
 
 .clear-button,
-.inline-retry {
+.inline-retry,
+.display-mode-button {
   color: var(--fgColor-accent, #0969da);
   padding: 2px 0;
 }
 
 .clear-button:hover,
-.inline-retry:hover {
-  text-decoration: underline;
-}
-
-.display-mode-button {
-  background: var(--button-default-bgColor-rest, #f6f8fa);
-  border: 1px solid var(--button-default-borderColor-rest, #d1d9e0);
-  border-radius: 5px;
-  color: var(--fgColor-default, CanvasText);
-  line-height: 18px;
-  padding: 0 6px;
-}
-
+.inline-retry:hover,
 .display-mode-button:hover {
-  background: var(--button-default-bgColor-hover, #eff2f5);
+  text-decoration: underline;
 }
 
 .explorer.original-mode {
