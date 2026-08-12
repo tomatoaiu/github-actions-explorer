@@ -44,7 +44,7 @@ button {
 .explorer-header {
   justify-content: space-between;
   margin-bottom: 7px;
-  min-height: 20px;
+  min-height: 24px;
 }
 
 .explorer-actions {
@@ -92,7 +92,7 @@ button {
 .clear-button,
 .inline-retry {
   color: var(--fgColor-accent, #0969da);
-  padding: 0;
+  padding: 2px 0;
 }
 
 .clear-button:hover,
@@ -136,9 +136,9 @@ button {
   border-radius: 6px;
   color: var(--fgColor-default, CanvasText);
   display: block;
-  height: 26px;
+  height: 30px;
   outline: none;
-  padding: 2px 9px;
+  padding: 4px 9px;
   width: 100%;
 }
 
@@ -160,7 +160,7 @@ button {
   color: var(--fgColor-muted, #59636e);
   font-size: 11px;
   justify-content: flex-end;
-  min-height: 20px;
+  min-height: 24px;
 }
 
 .history-section,
@@ -196,7 +196,7 @@ button {
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
-  padding: 0 8px;
+  padding: 2px 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -206,10 +206,10 @@ button {
   color: var(--fgColor-muted, #59636e);
   flex: none;
   font-size: 16px;
-  height: 20px;
+  height: 24px;
   line-height: 1;
   padding: 0;
-  width: 20px;
+  width: 24px;
 }
 
 .history-item-clear:hover {
@@ -229,7 +229,7 @@ button {
 
 .recent-list {
   border-bottom: 1px solid var(--borderColor-muted, #d8dee4);
-  padding-bottom: 5px;
+  padding-bottom: 7px;
 }
 
 .recent-workflow-item {
@@ -246,7 +246,7 @@ button {
 .workflow-link,
 .group-toggle {
   border-radius: 6px;
-  min-height: 24px;
+  min-height: 32px;
   text-align: left;
   width: 100%;
 }
@@ -255,12 +255,12 @@ button {
   color: var(--fgColor-default, CanvasText);
   gap: 6px;
   justify-content: space-between;
-  padding: 2px 7px;
+  padding: 4px 7px;
   text-decoration: none;
 }
 
 .workflow-link.compact {
-  min-height: 20px;
+  min-height: 28px;
 }
 
 .workflow-link:hover,
@@ -327,7 +327,7 @@ button {
 
 .group-toggle {
   gap: 5px;
-  padding: 2px 7px;
+  padding: 4px 7px;
 }
 
 .chevron {
@@ -357,7 +357,7 @@ button {
 .error-message,
 .stale-notice {
   color: var(--fgColor-muted, #59636e);
-  padding: 7px;
+  padding: 9px 7px;
 }
 
 .loading-message {
@@ -388,7 +388,7 @@ button {
   border: 1px solid var(--button-default-borderColor-rest, #d1d9e0);
   border-radius: 6px;
   margin-top: 3px;
-  padding: 1px 9px;
+  padding: 3px 9px;
 }
 
 .stale-notice {
