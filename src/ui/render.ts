@@ -275,8 +275,10 @@ function renderGroupedWorkflowItems(
     toggle.dataset.prefix = item.key
     toggle.setAttribute("aria-expanded", String(!isCollapsed))
     toggle.setAttribute("aria-label", `Toggle ${item.label} workflow group`)
+    const chevron = element("span", "chevron")
+    chevron.setAttribute("aria-hidden", "true")
     toggle.append(
-      element("span", "chevron", isCollapsed ? "▸" : "▾"),
+      chevron,
       element("span", "group-name", item.label),
       element("span", "group-count", String(item.workflows.length)),
     )
