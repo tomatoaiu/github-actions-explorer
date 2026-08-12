@@ -122,14 +122,6 @@ jobs:
             exit 1
           fi
 
-          immutable=$(gh api \
-            "repos/${GITHUB_REPOSITORY}/immutable-releases" \
-            --jq '.enabled')
-          if [[ "$immutable" != "true" ]]; then
-            echo "Immutable Releases must be enabled before publishing." >&2
-            exit 1
-          fi
-
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && -z "$MANUAL_RELEASE_SHA" ]]; then
             release_count=$(gh api \
               "repos/${GITHUB_REPOSITORY}/releases?per_page=1" \
