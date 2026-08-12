@@ -57,6 +57,7 @@ jobs:
       attestations: write
       contents: read
       id-token: write
+      pull-requests: read
     env:
       RELEASE_SHA: >-
         ${{
@@ -65,6 +66,7 @@ jobs:
           github.sha
         }}
     outputs:
+      release_pr_number: ${{ steps.metadata.outputs.release_pr_number }}
       release_sha: ${{ steps.metadata.outputs.release_sha }}
       tag: ${{ steps.metadata.outputs.tag }}
       version: ${{ steps.metadata.outputs.version }}
@@ -81,6 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MANUAL_RELEASE_SHA: ${{ inputs.release_sha }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
@@ -122,6 +125,44 @@ jobs:
             exit 1
           fi
 
+          release_pr_number="${PULL_REQUEST_NUMBER:-}"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && -n "$MANUAL_RELEASE_SHA" ]]; then
+            release_pr_number=$(
+              gh api \
+                -H "Accept: application/vnd.github+json" \
+                "repos/${GITHUB_REPOSITORY}/commits/${release_sha}/pulls" |
+                jq -er \
+                  --arg repository "$GITHUB_REPOSITORY" \
+                  --arg sha "$release_sha" '
+                    [
+                      .[]
+                      | select(
+                          .merged_at != null
+                          and .merge_commit_sha == $sha
+                          and .base.ref == "main"
+                          and .head.repo.full_name == $repository
+                          and .user.login == "github-actions[bot]"
+                          and (
+                            .head.ref
+                            | startswith("release-please--branches--main")
+                          )
+                          and (
+                            [.labels[].name]
+                            | index("autorelease: pending") != null
+                          )
+                        )
+                    ]
+                    | if length == 1 then
+                        .[0].number
+                      else
+                        error(
+                          "Expected one pending Release Please PR, found \(length)"
+                        )
+                      end
+                  '
+            )
+          fi
+
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && -z "$MANUAL_RELEASE_SHA" ]]; then
             release_count=$(gh api \
               "repos/${GITHUB_REPOSITORY}/releases?per_page=1" \
@@ -144,6 +185,7 @@ jobs:
           fi
 
           {
+            echo "release_pr_number=${release_pr_number}"
             echo "release_sha=${release_sha}"
             echo "tag=${tag}"
             echo "version=${version}"
@@ -285,10 +327,10 @@ jobs:
           gh release verify-asset "$TAG" \
             "release-assets/${ZIP_NAME}"
       - name: Mark release pull request as published
-        if: github.event_name == 'pull_request'
+        if: needs.build.outputs.release_pr_number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ needs.build.outputs.release_pr_number }}
         run: >-
           gh pr edit "$PR_NUMBER"
           --remove-label "autorelease: pending"
