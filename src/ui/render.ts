@@ -335,6 +335,88 @@ function renderError(parent: HTMLElement): void {
   parent.replaceChildren(error)
 }
 
+type WorkflowNavigationItem = HTMLAnchorElement | HTMLButtonElement
+
+const WORKFLOW_NAVIGATION_SELECTOR = ".group-toggle, .workflow-link"
+
+function workflowNavigationItemFromTarget(
+  target: EventTarget | null,
+): WorkflowNavigationItem | null {
+  if (!(target instanceof Element)) {
+    return null
+  }
+  return target.closest<WorkflowNavigationItem>(WORKFLOW_NAVIGATION_SELECTOR)
+}
+
+function workflowNavigationItems(root: Element): WorkflowNavigationItem[] {
+  return [
+    ...root.querySelectorAll<WorkflowNavigationItem>(
+      WORKFLOW_NAVIGATION_SELECTOR,
+    ),
+  ].filter(
+    (item) =>
+      !item.hasAttribute("disabled") && item.closest("[hidden]") === null,
+  )
+}
+
+function isGroupToggle(
+  item: WorkflowNavigationItem,
+): item is HTMLButtonElement {
+  return item.classList.contains("group-toggle")
+}
+
+function directGroupToggle(group: Element): HTMLButtonElement | null {
+  for (const child of group.children) {
+    if (
+      child instanceof HTMLButtonElement &&
+      child.classList.contains("group-toggle")
+    ) {
+      return child
+    }
+  }
+  return null
+}
+
+function firstGroupChild(
+  toggle: HTMLButtonElement,
+): WorkflowNavigationItem | null {
+  const group = toggle.closest(".workflow-group")
+  if (group === null) {
+    return null
+  }
+  for (const child of group.children) {
+    if (child.classList.contains("group-children")) {
+      return workflowNavigationItems(child)[0] ?? null
+    }
+  }
+  return null
+}
+
+function parentGroupToggle(
+  item: WorkflowNavigationItem,
+): HTMLButtonElement | null {
+  const hierarchyItem = isGroupToggle(item)
+    ? item.closest(".workflow-group")
+    : item
+  const parentChildren =
+    hierarchyItem?.parentElement?.closest(".group-children")
+  const parentGroup = parentChildren?.closest(".workflow-group")
+  return parentGroup === undefined || parentGroup === null
+    ? null
+    : directGroupToggle(parentGroup)
+}
+
+function groupToggleByPrefix(
+  root: Element,
+  prefix: string,
+): HTMLButtonElement | null {
+  return (
+    [...root.querySelectorAll<HTMLButtonElement>(".group-toggle")].find(
+      (toggle) => toggle.dataset.prefix === prefix,
+    ) ?? null
+  )
+}
+
 export function createExplorerView(
   container: HTMLElement,
   handlers: ExplorerViewHandlers,
@@ -376,10 +458,124 @@ export function createExplorerView(
     handlers.onQuerySubmit(input.value)
   }
   const onInput = (): void => handlers.onQueryChange(input.value)
+  const toggleGroup = (toggle: HTMLButtonElement): void => {
+    const prefix = toggle.dataset.prefix
+    if (prefix === undefined) {
+      return
+    }
+    handlers.onTogglePrefix(prefix)
+    groupToggleByPrefix(root, prefix)?.focus()
+  }
+  const moveWorkflowFocus = (
+    target: EventTarget | null,
+    direction: -1 | 1,
+  ): boolean => {
+    const items = workflowNavigationItems(root)
+    if (items.length === 0) {
+      return false
+    }
+
+    if (target === input) {
+      const destination = direction === 1 ? items[0] : items.at(-1)
+      destination?.focus()
+      return true
+    }
+
+    const current = workflowNavigationItemFromTarget(target)
+    if (current === null) {
+      return false
+    }
+    const currentIndex = items.indexOf(current)
+    if (currentIndex < 0) {
+      return false
+    }
+    if (direction === -1 && currentIndex === 0) {
+      input.focus()
+      return true
+    }
+
+    const nextIndex = Math.max(
+      0,
+      Math.min(items.length - 1, currentIndex + direction),
+    )
+    items[nextIndex]?.focus()
+    return true
+  }
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === "Escape" && input.value.length > 0) {
-      input.value = ""
-      handlers.onQueryChange("")
+    if (event.isComposing) {
+      return
+    }
+
+    const navigationItem = workflowNavigationItemFromTarget(event.target)
+    if (event.key === "Escape") {
+      if (event.target === input && input.value.length > 0) {
+        event.preventDefault()
+        input.value = ""
+        handlers.onQueryChange("")
+      } else if (navigationItem !== null) {
+        event.preventDefault()
+        input.focus()
+      }
+      return
+    }
+
+    if (
+      event.key === "ArrowDown" &&
+      event.metaKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.shiftKey
+    ) {
+      if (navigationItem instanceof HTMLAnchorElement && !event.repeat) {
+        event.preventDefault()
+        navigationItem.click()
+      }
+      return
+    }
+
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const direction = event.key === "ArrowDown" ? 1 : -1
+      if (moveWorkflowFocus(event.target, direction)) {
+        event.preventDefault()
+      }
+      return
+    }
+
+    if (navigationItem === null) {
+      return
+    }
+
+    if (event.key === "ArrowRight" && isGroupToggle(navigationItem)) {
+      event.preventDefault()
+      if (navigationItem.getAttribute("aria-expanded") === "false") {
+        toggleGroup(navigationItem)
+      } else {
+        firstGroupChild(navigationItem)?.focus()
+      }
+      return
+    }
+
+    if (event.key !== "ArrowLeft") {
+      return
+    }
+
+    if (
+      isGroupToggle(navigationItem) &&
+      navigationItem.getAttribute("aria-expanded") === "true"
+    ) {
+      event.preventDefault()
+      toggleGroup(navigationItem)
+      return
+    }
+
+    const parentToggle = parentGroupToggle(navigationItem)
+    if (parentToggle !== null) {
+      event.preventDefault()
+      parentToggle.focus()
     }
   }
   const onClick = (event: MouseEvent): void => {
@@ -420,7 +616,7 @@ export function createExplorerView(
 
     const prefix = target.dataset.prefix
     if (prefix !== undefined) {
-      handlers.onTogglePrefix(prefix)
+      toggleGroup(target as HTMLButtonElement)
       return
     }
 
@@ -435,7 +631,7 @@ export function createExplorerView(
 
   form.addEventListener("submit", onSubmit)
   input.addEventListener("input", onInput)
-  input.addEventListener("keydown", onKeyDown)
+  root.addEventListener("keydown", onKeyDown)
   root.addEventListener("click", onClick)
 
   return {
@@ -533,7 +729,7 @@ export function createExplorerView(
     dispose() {
       form.removeEventListener("submit", onSubmit)
       input.removeEventListener("input", onInput)
-      input.removeEventListener("keydown", onKeyDown)
+      root.removeEventListener("keydown", onKeyDown)
       root.removeEventListener("click", onClick)
       root.remove()
     },

@@ -272,6 +272,16 @@ button {
   text-decoration: none;
 }
 
+.workflow-link:focus-visible,
+.group-toggle:focus-visible {
+  background: var(
+    --control-transparent-bgColor-hover,
+    rgba(129, 139, 152, 0.12)
+  );
+  outline: 2px solid var(--focus-outlineColor, #0969da);
+  outline-offset: -2px;
+}
+
 .workflow-link.current {
   background: var(
     --control-transparent-bgColor-selected,
