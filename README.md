@@ -70,6 +70,10 @@ SHA-256 checksum in an immutable GitHub Release. The first `v0.1.0` release is
 started manually from the **Release** workflow; subsequent releases start
 automatically when a Release Please pull request is merged.
 
+Immutable Releases must remain enabled in the repository settings. Every
+published release and its ZIP asset are verified by the workflow after
+publication.
+
 Download and verify a release with GitHub CLI:
 
 ```sh
