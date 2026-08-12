@@ -3,6 +3,9 @@
 A Chrome Manifest V3 extension that upgrades the GitHub Actions workflow
 sidebar with fuzzy search, prefix grouping, and repository-specific history.
 
+This is an unofficial project and is not affiliated with or endorsed by
+GitHub.
+
 ## Features
 
 - Fuzzy workflow search powered by Fuse.js
@@ -91,3 +94,9 @@ The workflow list comes from GitHub's unofficial same-origin
 `actions/workflows_partial` endpoint. Its parser is isolated and covered by
 HTML fixtures so a markup change cannot silently turn a parse failure into an
 empty workflow list.
+
+## License
+
+GitHub Actions Explorer is available under the [MIT License](LICENSE).
+Bundled third-party software retains its original license; see
+[THIRD_PARTY_NOTICES.txt](public/THIRD_PARTY_NOTICES.txt).

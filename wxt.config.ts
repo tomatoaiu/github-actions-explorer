@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: "GitHub Actions Explorer",
     description:
-      "Search, group, and quickly reopen workflows in the GitHub Actions sidebar.",
+      "An unofficial extension to search, group, and quickly reopen workflows in the GitHub Actions sidebar.",
     permissions: ["storage"],
   },
 })
