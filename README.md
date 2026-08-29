@@ -6,6 +6,13 @@ sidebar with fuzzy search, prefix grouping, and repository-specific history.
 This is an unofficial project and is not affiliated with or endorsed by
 GitHub.
 
+## Preview
+
+<p align="center">
+  <img src="docs/assets/grouped-workflows.png" alt="GitHub Actions Explorer organizing workflows into nested Deploy, API, and Web groups" width="360">
+  <img src="docs/assets/fuzzy-search.png" alt="GitHub Actions Explorer finding Deploy workflows from the misspelled query dploy" width="360">
+</p>
+
 ## Features
 
 - Fuzzy workflow search powered by Fuse.js
