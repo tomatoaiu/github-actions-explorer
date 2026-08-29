@@ -1,0 +1,14 @@
+# Manual-only fixture used to capture the README preview.
+name: Test / Integration
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  noop:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: ":"
