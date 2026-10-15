@@ -9,6 +9,7 @@ import {
   findNativeWorkflowElementsToHide,
   WORKFLOW_LIST_ANCHOR,
 } from "../../github/native-workflow-list"
+import { observeWorkflowMount } from "../../github/workflow-mount"
 import { ExplorerController } from "../../ui/controller"
 import type { ExplorerDisplayMode } from "../../ui/render"
 
@@ -19,6 +20,7 @@ type MountedExplorer = {
 type RouteSession = {
   abortController: AbortController
   ui: ShadowRootContentScriptUi<MountedExplorer> | null
+  stopObserving: (() => void) | null
 }
 
 class NativeWorkflowListGuard {
@@ -77,6 +79,7 @@ export default defineContentScript({
 
     const removeSession = (): void => {
       session?.abortController.abort()
+      session?.stopObserving?.()
       session?.ui?.remove()
       session = null
     }
@@ -92,7 +95,11 @@ export default defineContentScript({
       }
 
       const abortController = new AbortController()
-      const nextSession: RouteSession = { abortController, ui: null }
+      const nextSession: RouteSession = {
+        abortController,
+        ui: null,
+        stopObserving: null,
+      }
       session = nextSession
 
       try {
@@ -140,7 +147,7 @@ export default defineContentScript({
         }
 
         nextSession.ui = ui
-        ui.autoMount()
+        nextSession.stopObserving = observeWorkflowMount(ui)
       } catch {
         if (session === nextSession) {
           removeSession()
