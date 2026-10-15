@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.3...v0.1.4) (2026-10-15)
+
+
+### Bug Fixes
+
+* remount explorer after React replaces the Actions sidebar ([#18](https://github.com/tomatoaiu/github-actions-explorer/issues/18)) ([306e404](https://github.com/tomatoaiu/github-actions-explorer/commit/306e40445200a26619a9b7393a6a22cf2c5b4fd4))
+
 ## [0.1.3](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.2...v0.1.3) (2026-10-15)
 
 
