@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.2...v0.1.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* support the new Actions sidebar and stabilize refresh layout ([#16](https://github.com/tomatoaiu/github-actions-explorer/issues/16)) ([b75adfb](https://github.com/tomatoaiu/github-actions-explorer/commit/b75adfba7a1dd5204b148fe7753b376a389c2d8d))
+
 ## [0.1.2](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.1...v0.1.2) (2026-08-27)
 
 
