@@ -5,7 +5,10 @@ import { createShadowRootUi, defineContentScript } from "#imports"
 import type { ShadowRootContentScriptUi } from "wxt/utils/content-script-ui/shadow-root"
 
 import { parseGitHubActionsRoute } from "../../github/route"
-import { findNativeWorkflowElementsToHide } from "../../github/native-workflow-list"
+import {
+  findNativeWorkflowElementsToHide,
+  WORKFLOW_LIST_ANCHOR,
+} from "../../github/native-workflow-list"
 import { ExplorerController } from "../../ui/controller"
 import type { ExplorerDisplayMode } from "../../ui/render"
 
@@ -96,7 +99,7 @@ export default defineContentScript({
         const ui = await createShadowRootUi<MountedExplorer>(ctx, {
           name: "github-actions-explorer",
           position: "inline",
-          anchor: "actions-workflow-list",
+          anchor: WORKFLOW_LIST_ANCHOR,
           append: "first",
           isolateEvents: true,
           onMount(container, _shadow, shadowHost) {

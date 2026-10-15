@@ -310,6 +310,44 @@ describe("createExplorerView", () => {
     expect(viewHandlers.onTogglePrefix).toHaveBeenCalledWith("deploy/api")
   })
 
+  it("keeps refresh feedback out of the workflow content", () => {
+    const container = document.createElement("div")
+    const view = createExplorerView(container, handlers())
+    view.render(readyState())
+    const readyContent = container.querySelector(".explorer-content")?.innerHTML
+
+    view.render({ ...readyState(), cacheStatus: "stale", isRefreshing: true })
+    expect(container.querySelector(".explorer-content")?.innerHTML).toBe(
+      readyContent,
+    )
+    expect(container.querySelector(".stale-notice")).toBeNull()
+    const refresh = container.querySelector<HTMLButtonElement>(
+      ".status-line .inline-retry",
+    )
+    expect(refresh?.disabled).toBe(true)
+    expect(refresh?.getAttribute("aria-label")).toBe("Refreshing workflows")
+    expect(refresh?.querySelector(".spinner")).not.toBeNull()
+
+    view.render(readyState())
+    expect(container.querySelector(".spinner")).toBeNull()
+    expect(container.querySelector(".explorer-content")?.innerHTML).toBe(
+      readyContent,
+    )
+  })
+
+  it("shows only an accessible status icon while initially loading", () => {
+    const container = document.createElement("div")
+    const view = createExplorerView(container, handlers())
+    view.render({ ...readyState(), status: "loading", workflows: [] })
+    expect(container.querySelector(".explorer-content")?.textContent).toBe("")
+    expect(container.querySelector(".status-line")?.textContent).toBe("")
+    expect(
+      container.querySelector(
+        ".status-line [aria-label='Loading workflows'] .spinner",
+      ),
+    ).not.toBeNull()
+  })
+
   it("labels stale data and exposes a retry action", () => {
     const container = document.createElement("div")
     document.body.append(container)
