@@ -451,6 +451,14 @@ export function createExplorerView(
 
   const statusLine = element("div", "status-line")
   statusLine.setAttribute("aria-live", "polite")
+  const statusText = element("span")
+  const refreshButton = element("button", "inline-retry status-icon")
+  refreshButton.type = "button"
+  refreshButton.dataset.action = "retry"
+  const refreshIcon = element("span")
+  refreshIcon.setAttribute("aria-hidden", "true")
+  refreshButton.append(refreshIcon)
+  statusLine.append(statusText, refreshButton)
   const content = element("div", "explorer-content")
   root.append(header, form, statusLine, content)
   container.replaceChildren(root)
@@ -666,7 +674,20 @@ export function createExplorerView(
         return
       }
 
-      input.disabled = state.status === "loading"
+      const loading = state.status === "loading"
+      const busy = loading || state.isRefreshing
+      input.disabled = loading
+      refreshButton.hidden = !busy && state.cacheStatus !== "stale"
+      refreshButton.disabled = busy
+      refreshButton.title = loading
+        ? "Loading workflows"
+        : state.isRefreshing
+          ? "Refreshing workflows"
+          : "Showing cached workflows. Refresh workflows"
+      refreshButton.setAttribute("aria-label", refreshButton.title)
+      refreshIcon.classList.toggle("spinner", busy)
+      refreshIcon.textContent =
+        !busy && state.cacheStatus === "stale" ? "↻" : ""
 
       if (state.cacheStatus === null) {
         cacheBadge.hidden = true
@@ -678,18 +699,13 @@ export function createExplorerView(
       }
 
       if (state.status === "loading") {
-        statusLine.textContent = "Loading workflows…"
-        const loading = element("div", "loading-message")
-        loading.append(
-          element("span", "spinner"),
-          element("span", undefined, "Loading workflows…"),
-        )
-        content.replaceChildren(loading)
+        statusText.textContent = ""
+        content.replaceChildren()
         return
       }
 
       if (state.status === "error") {
-        statusLine.textContent = "Unable to load workflows"
+        statusText.textContent = "Unable to load workflows"
         renderError(content)
         return
       }
@@ -697,33 +713,14 @@ export function createExplorerView(
       const query = normalizeQuery(state.query)
       const fragment = document.createDocumentFragment()
 
-      if (state.cacheStatus === "stale") {
-        const notice = element("div", "stale-notice")
-        notice.append(
-          element("span", undefined, "Showing cached workflows."),
-          element(
-            "button",
-            "inline-retry",
-            state.isRefreshing ? "Refreshing…" : "Refresh",
-          ),
-        )
-        const retryButton = notice.querySelector("button")
-        if (retryButton !== null) {
-          retryButton.setAttribute("type", "button")
-          retryButton.dataset.action = "retry"
-          retryButton.toggleAttribute("disabled", state.isRefreshing)
-        }
-        fragment.append(notice)
-      }
-
       if (query.length === 0) {
-        statusLine.textContent = `${state.workflows.length} workflows`
+        statusText.textContent = `${state.workflows.length} workflows`
         renderRecentQueries(fragment, state)
         renderRecentWorkflows(fragment, state)
         renderGroupedWorkflows(fragment, state)
       } else {
         const resultCount = renderSearchResults(fragment, state, query)
-        statusLine.textContent = `${resultCount} of ${state.workflows.length} workflows`
+        statusText.textContent = `${resultCount} of ${state.workflows.length} workflows`
       }
 
       content.replaceChildren(fragment)

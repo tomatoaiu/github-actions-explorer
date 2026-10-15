@@ -1,3 +1,6 @@
+const REACT_WORKFLOW_NAV = 'nav[aria-label="Actions workflows"]'
+export const WORKFLOW_LIST_ANCHOR = `actions-workflow-list, ${REACT_WORKFLOW_NAV}`
+
 const WORKFLOW_ITEM_SELECTOR =
   '[data-test-selector="workflow-rendered"], li.actions-workflow-list-item'
 const ALL_WORKFLOWS_SELECTOR = '[data-item-id="all_workflows"]'
@@ -8,6 +11,15 @@ export function findNativeWorkflowElementsToHide(
   root: Element,
 ): Set<HTMLElement> {
   const elements = new Set<HTMLElement>()
+  if (root.matches(REACT_WORKFLOW_NAV)) {
+    // Keep the nav (and our shadow host) visible; management has its own nav.
+    return new Set(
+      root.querySelectorAll<HTMLElement>(
+        ':scope > ul[data-component="ActionList"]',
+      ),
+    )
+  }
+
   const workflowItems = root.querySelectorAll(WORKFLOW_ITEM_SELECTOR)
 
   for (const item of workflowItems) {
