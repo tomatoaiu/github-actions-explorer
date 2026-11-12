@@ -4,6 +4,10 @@
   width: 100% !important;
 }
 
+:host([data-sidebar-collapsed]) {
+  display: none !important;
+}
+
 .explorer,
 .explorer * {
   box-sizing: border-box;
