@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.4...v0.1.5) (2026-11-12)
+
+
+### Bug Fixes
+
+* support the collapsible Actions sidebar ([#21](https://github.com/tomatoaiu/github-actions-explorer/issues/21)) ([045dde2](https://github.com/tomatoaiu/github-actions-explorer/commit/045dde23b9a4a13d9b495fcd973c637033a646b6))
+
 ## [0.1.4](https://github.com/tomatoaiu/github-actions-explorer/compare/v0.1.3...v0.1.4) (2026-10-15)
 
 
