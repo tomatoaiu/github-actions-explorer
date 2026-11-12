@@ -1,103 +1,159 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
 import {
+  COLLAPSED_HOST_ATTRIBUTE,
   findNativeWorkflowElementsToHide,
+  isSidebarCollapsed,
+  NativeWorkflowListGuard,
   WORKFLOW_LIST_ANCHOR,
 } from "../src/github/native-workflow-list"
 
+const flushMutations = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+function createActionsSidebar(): HTMLElement {
+  const page = document.createElement("div")
+  // Reduced from the Primer Sidebar on github.com Actions pages (2026-11).
+  page.innerHTML = `
+    <aside aria-label="Actions" data-expanded="true">
+      <div data-component="Sidebar">
+        <nav aria-label="Workflows" data-component="Sidebar.Main">
+          <div data-component="Sidebar.Section" id="all-workflows">
+            <div data-component="Sidebar.Item">
+              <a href="/octo/repo/actions" aria-current="page">All workflows</a>
+            </div>
+          </div>
+          <div data-component="Sidebar.Section" id="workflows">
+            <div data-component="Sidebar.SectionGroup">
+              <h2 data-component="Heading">Workflows</h2>
+              <div data-component="Sidebar.DisclosurePanel">
+                <div data-component="Sidebar.Item">
+                  <a href="/octo/repo/actions/workflows/ci.yml">CI</a>
+                </div>
+                <button data-component="Button">Show more</button>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+      <div data-component="Sidebar.Footer">
+        <nav aria-label="Management" data-component="Sidebar.Main">
+          <div data-component="Sidebar.Section" id="management">
+            <a href="/octo/repo/actions/caches">Caches</a>
+          </div>
+        </nav>
+      </div>
+    </aside>
+  `
+  return page
+}
+
 describe("findNativeWorkflowElementsToHide", () => {
-  it("mounts inside the React workflow nav and hides only its native list", () => {
-    const page = document.createElement("div")
-    // Reduced from the React Actions sidebar; management is a separate nav.
-    page.innerHTML = `
-      <nav aria-label="Actions workflows" data-component="NavList">
-        <ul data-component="ActionList" id="native-list">
-          <li data-component="ActionList.Item"><a href="/octo/repo/actions">All workflows</a></li>
-          <li data-component="ActionList.Group">
-            <div data-component="GroupHeadingWrap"><h3>Workflows</h3></div>
-            <ul><li data-component="ActionList.Item">
-              <a href="/octo/repo/actions/workflows/ci.yml">CI</a>
-            </li></ul>
-          </li>
-        </ul>
-      </nav>
-      <nav aria-label="Actions management"><ul id="management"><li>Runners</li></ul></nav>
-    `
+  it("mounts inside the workflow nav and hides only its native sections", () => {
+    const page = createActionsSidebar()
     const anchor = page.querySelector(WORKFLOW_LIST_ANCHOR)
-    expect(anchor).not.toBeNull()
+    expect(anchor?.getAttribute("aria-label")).toBe("Workflows")
     if (anchor === null) throw new Error("Missing workflow anchor")
 
     const explorer = document.createElement("github-actions-explorer")
     anchor.prepend(explorer)
     const elements = findNativeWorkflowElementsToHide(anchor)
-    expect([...elements].map((element) => element.id)).toEqual(["native-list"])
+    expect([...elements].map((element) => element.id)).toEqual([
+      "all-workflows",
+      "workflows",
+    ])
     for (const element of elements) element.hidden = true
     expect(explorer.closest("[hidden]")).toBeNull()
     expect(page.querySelector("#management")?.closest("[hidden]")).toBeNull()
 
-    // React may replace the list during navigation; re-scan the current DOM.
-    const list = anchor.querySelector("#native-list")!
-    const replacement = list.cloneNode(true) as HTMLElement
+    // React may replace a section during navigation; re-scan the current DOM.
+    const section = anchor.querySelector("#workflows")!
+    const replacement = section.cloneNode(true) as HTMLElement
     replacement.hidden = false
-    list.replaceWith(replacement)
+    section.replaceWith(replacement)
     expect(findNativeWorkflowElementsToHide(anchor)).toEqual(
-      new Set([replacement]),
+      new Set([anchor.querySelector("#all-workflows")!, replacement]),
     )
   })
 
-  it("still finds the legacy mount anchor", () => {
-    const page = document.createElement("div")
-    page.innerHTML = "<actions-workflow-list></actions-workflow-list>"
-    expect(page.querySelector(WORKFLOW_LIST_ANCHOR)?.tagName).toBe(
-      "ACTIONS-WORKFLOW-LIST",
-    )
-  })
+  it("does not mount inside the management nav", () => {
+    const page = createActionsSidebar()
+    page.querySelector('nav[aria-label="Workflows"]')?.remove()
 
-  it("selects the All workflows row, its divider, and workflow container", () => {
-    const root = document.createElement("actions-workflow-list")
-    const list = document.createElement("ul")
-    const allWorkflows = document.createElement("li")
-    allWorkflows.id = "all"
-    allWorkflows.dataset.itemId = "all_workflows"
-    const allDivider = document.createElement("li")
-    allDivider.id = "all-divider"
-    allDivider.className = "ActionList-sectionDivider"
-    allDivider.setAttribute("role", "presentation")
-    const workflowContainer = document.createElement("li")
-    workflowContainer.id = "workflow-container"
-    const workflowGroup = document.createElement("nav-list-group")
-    const workflow = document.createElement("li")
-    workflow.dataset.testSelector = "workflow-rendered"
-    workflowGroup.append(workflow)
-    workflowContainer.append(workflowGroup)
-    const managementDivider = document.createElement("li")
-    managementDivider.id = "management-divider"
-    managementDivider.className = "ActionList-sectionDivider"
-    managementDivider.setAttribute("role", "presentation")
-    const management = document.createElement("li")
-    management.id = "management"
-    list.append(
-      allWorkflows,
-      allDivider,
-      workflowContainer,
-      managementDivider,
-      management,
-    )
-    root.append(list)
-
-    const ids = [...findNativeWorkflowElementsToHide(root)].map(
-      (element) => element.id,
-    )
-
-    expect(ids).toEqual(["workflow-container", "all", "all-divider"])
-    expect(ids).not.toContain("management-divider")
-    expect(ids).not.toContain("management")
+    expect(page.querySelector(WORKFLOW_LIST_ANCHOR)).toBeNull()
   })
 
   it("leaves unrelated content untouched when GitHub markup is incomplete", () => {
-    const root = document.createElement("actions-workflow-list")
-    root.innerHTML = '<li id="management">Management</li>'
+    const root = document.createElement("nav")
+    root.innerHTML = '<div id="unknown">Workflows</div>'
 
     expect(findNativeWorkflowElementsToHide(root)).toEqual(new Set())
+  })
+})
+
+describe("NativeWorkflowListGuard", () => {
+  const guards: NativeWorkflowListGuard[] = []
+
+  afterEach(() => {
+    for (const guard of guards.splice(0)) guard.dispose()
+    document.body.replaceChildren()
+  })
+
+  function mountGuard() {
+    document.body.append(createActionsSidebar())
+    const anchor = document.querySelector(WORKFLOW_LIST_ANCHOR)!
+    const shadowHost = document.createElement("github-actions-explorer")
+    anchor.prepend(shadowHost)
+    const guard = new NativeWorkflowListGuard(anchor, shadowHost)
+    guards.push(guard)
+    const aside = document.querySelector("aside")!
+    const hiddenSectionIds = () =>
+      [...anchor.querySelectorAll<HTMLElement>("[data-component]")]
+        .filter((element) => element.hidden)
+        .map((element) => element.id)
+    return { guard, shadowHost, aside, hiddenSectionIds }
+  }
+
+  it("hides native sections only while Explorer is shown", () => {
+    const { guard, shadowHost, hiddenSectionIds } = mountGuard()
+    expect(hiddenSectionIds()).toEqual([])
+
+    guard.setHidden(true)
+    expect(hiddenSectionIds()).toEqual(["all-workflows", "workflows"])
+    expect(shadowHost.hasAttribute(COLLAPSED_HOST_ATTRIBUTE)).toBe(false)
+
+    guard.setHidden(false)
+    expect(hiddenSectionIds()).toEqual([])
+  })
+
+  it("shows GitHub's icon-only sections while the sidebar is collapsed", async () => {
+    const { guard, shadowHost, aside, hiddenSectionIds } = mountGuard()
+    guard.setHidden(true)
+
+    aside.dataset.expanded = "false"
+    await flushMutations()
+    expect(isSidebarCollapsed(shadowHost)).toBe(true)
+    expect(shadowHost.hasAttribute(COLLAPSED_HOST_ATTRIBUTE)).toBe(true)
+    expect(hiddenSectionIds()).toEqual([])
+
+    aside.dataset.expanded = "true"
+    await flushMutations()
+    expect(shadowHost.hasAttribute(COLLAPSED_HOST_ATTRIBUTE)).toBe(false)
+    expect(hiddenSectionIds()).toEqual(["all-workflows", "workflows"])
+  })
+
+  it("starts collapsed and restores the page on dispose", () => {
+    document.body.append(createActionsSidebar())
+    document.querySelector("aside")!.dataset.expanded = "false"
+    const anchor = document.querySelector(WORKFLOW_LIST_ANCHOR)!
+    const shadowHost = document.createElement("github-actions-explorer")
+    anchor.prepend(shadowHost)
+    const guard = new NativeWorkflowListGuard(anchor, shadowHost)
+    expect(shadowHost.hasAttribute(COLLAPSED_HOST_ATTRIBUTE)).toBe(true)
+
+    document.querySelector("aside")!.dataset.expanded = "true"
+    guard.setHidden(true)
+    guard.dispose()
+    expect(shadowHost.hasAttribute(COLLAPSED_HOST_ATTRIBUTE)).toBe(false)
+    expect(anchor.querySelector("[hidden]")).toBeNull()
   })
 })

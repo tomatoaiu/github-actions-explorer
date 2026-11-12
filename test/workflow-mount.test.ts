@@ -22,7 +22,8 @@ function createUi() {
 
 function createAnchor() {
   const nav = document.createElement("nav")
-  nav.setAttribute("aria-label", "Actions workflows")
+  nav.setAttribute("aria-label", "Workflows")
+  nav.dataset.component = "Sidebar.Main"
   return nav
 }
 

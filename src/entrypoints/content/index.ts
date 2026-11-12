@@ -6,7 +6,7 @@ import type { ShadowRootContentScriptUi } from "wxt/utils/content-script-ui/shad
 
 import { parseGitHubActionsRoute } from "../../github/route"
 import {
-  findNativeWorkflowElementsToHide,
+  NativeWorkflowListGuard,
   WORKFLOW_LIST_ANCHOR,
 } from "../../github/native-workflow-list"
 import { observeWorkflowMount } from "../../github/workflow-mount"
@@ -21,50 +21,6 @@ type RouteSession = {
   abortController: AbortController
   ui: ShadowRootContentScriptUi<MountedExplorer> | null
   stopObserving: (() => void) | null
-}
-
-class NativeWorkflowListGuard {
-  readonly #root: Element
-  readonly #observer: MutationObserver
-  readonly #originalHidden = new Map<HTMLElement, HTMLElement["hidden"]>()
-  #hidden = false
-
-  constructor(root: Element) {
-    this.#root = root
-    this.#observer = new MutationObserver(() => this.#apply())
-    this.#observer.observe(root, { childList: true, subtree: true })
-  }
-
-  setHidden(hidden: boolean): void {
-    this.#hidden = hidden
-    this.#apply()
-  }
-
-  dispose(): void {
-    this.#observer.disconnect()
-    this.#restore()
-  }
-
-  #apply(): void {
-    if (!this.#hidden) {
-      this.#restore()
-      return
-    }
-
-    for (const element of findNativeWorkflowElementsToHide(this.#root)) {
-      if (!this.#originalHidden.has(element)) {
-        this.#originalHidden.set(element, element.hidden)
-      }
-      element.hidden = true
-    }
-  }
-
-  #restore(): void {
-    for (const [group, wasHidden] of this.#originalHidden) {
-      group.hidden = wasHidden
-    }
-    this.#originalHidden.clear()
-  }
 }
 
 export default defineContentScript({
@@ -112,7 +68,9 @@ export default defineContentScript({
           onMount(container, _shadow, shadowHost) {
             const anchor = shadowHost.parentElement
             const guard =
-              anchor === null ? null : new NativeWorkflowListGuard(anchor)
+              anchor === null
+                ? null
+                : new NativeWorkflowListGuard(anchor, shadowHost)
             const controller = new ExplorerController({
               container,
               initialDisplayMode: displayMode,

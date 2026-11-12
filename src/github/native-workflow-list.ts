@@ -1,48 +1,83 @@
-const REACT_WORKFLOW_NAV = 'nav[aria-label="Actions workflows"]'
-export const WORKFLOW_LIST_ANCHOR = `actions-workflow-list, ${REACT_WORKFLOW_NAV}`
+export const WORKFLOW_LIST_ANCHOR =
+  'nav[data-component="Sidebar.Main"][aria-label="Workflows"]'
 
-const WORKFLOW_ITEM_SELECTOR =
-  '[data-test-selector="workflow-rendered"], li.actions-workflow-list-item'
-const ALL_WORKFLOWS_SELECTOR = '[data-item-id="all_workflows"]'
-const SECTION_DIVIDER_SELECTOR =
-  'li.ActionList-sectionDivider[role="presentation"]'
+const NATIVE_SECTION_SELECTOR = ':scope > [data-component="Sidebar.Section"]'
+const SIDEBAR_EXPANDED_ATTRIBUTE = "data-expanded"
+const SIDEBAR_SELECTOR = `aside[${SIDEBAR_EXPANDED_ATTRIBUTE}]`
+export const COLLAPSED_HOST_ATTRIBUTE = "data-sidebar-collapsed"
 
 export function findNativeWorkflowElementsToHide(
   root: Element,
 ): Set<HTMLElement> {
-  const elements = new Set<HTMLElement>()
-  if (root.matches(REACT_WORKFLOW_NAV)) {
-    // Keep the nav (and our shadow host) visible; management has its own nav.
-    return new Set(
-      root.querySelectorAll<HTMLElement>(
-        ':scope > ul[data-component="ActionList"]',
-      ),
-    )
-  }
+  // Keep the nav (and our shadow host) visible; management has its own nav.
+  return new Set(root.querySelectorAll<HTMLElement>(NATIVE_SECTION_SELECTOR))
+}
 
-  const workflowItems = root.querySelectorAll(WORKFLOW_ITEM_SELECTOR)
+export function isSidebarCollapsed(root: Element): boolean {
+  return (
+    root.closest(SIDEBAR_SELECTOR)?.getAttribute(SIDEBAR_EXPANDED_ATTRIBUTE) ===
+    "false"
+  )
+}
 
-  for (const item of workflowItems) {
-    const group = item.closest<HTMLElement>("nav-list-group")
-    if (group === null) {
-      continue
+/**
+ * Hides GitHub's workflow sections while Explorer is shown. A collapsed
+ * sidebar is too narrow for Explorer, so it keeps GitHub's icon-only sections
+ * and hides the shadow host instead.
+ */
+export class NativeWorkflowListGuard {
+  readonly #root: Element
+  readonly #shadowHost: HTMLElement
+  readonly #observer: MutationObserver
+  readonly #originalHidden = new Map<HTMLElement, HTMLElement["hidden"]>()
+  #hidden = false
+
+  constructor(root: Element, shadowHost: HTMLElement) {
+    this.#root = root
+    this.#shadowHost = shadowHost
+    this.#observer = new MutationObserver(() => this.#apply())
+    this.#observer.observe(root, { childList: true, subtree: true })
+    const sidebar = root.closest(SIDEBAR_SELECTOR)
+    if (sidebar !== null) {
+      this.#observer.observe(sidebar, {
+        attributes: true,
+        attributeFilter: [SIDEBAR_EXPANDED_ATTRIBUTE],
+      })
     }
-    elements.add(group.closest<HTMLElement>("li") ?? group)
+    this.#apply()
   }
 
-  const allWorkflows = root.querySelector<HTMLElement>(ALL_WORKFLOWS_SELECTOR)
-  if (allWorkflows === null) {
-    return elements
+  setHidden(hidden: boolean): void {
+    this.#hidden = hidden
+    this.#apply()
   }
 
-  elements.add(allWorkflows)
-  const divider = allWorkflows.nextElementSibling
-  if (
-    divider instanceof HTMLElement &&
-    divider.matches(SECTION_DIVIDER_SELECTOR)
-  ) {
-    elements.add(divider)
+  dispose(): void {
+    this.#observer.disconnect()
+    this.#shadowHost.removeAttribute(COLLAPSED_HOST_ATTRIBUTE)
+    this.#restore()
   }
 
-  return elements
+  #apply(): void {
+    const collapsed = isSidebarCollapsed(this.#root)
+    this.#shadowHost.toggleAttribute(COLLAPSED_HOST_ATTRIBUTE, collapsed)
+    if (!this.#hidden || collapsed) {
+      this.#restore()
+      return
+    }
+
+    for (const element of findNativeWorkflowElementsToHide(this.#root)) {
+      if (!this.#originalHidden.has(element)) {
+        this.#originalHidden.set(element, element.hidden)
+      }
+      element.hidden = true
+    }
+  }
+
+  #restore(): void {
+    for (const [element, wasHidden] of this.#originalHidden) {
+      element.hidden = wasHidden
+    }
+    this.#originalHidden.clear()
+  }
 }
